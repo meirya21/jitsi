@@ -1,0 +1,52 @@
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: {{ include "jitsi-meet.jvb.fullname" . }}
+#   labels:
+#     {{- include "jitsi-meet.jvb.labels" . | nindent 4 }}
+# data:
+#   JVB_BREWERY_MUC: '{{ .Values.jvb.breweryMuc }}'
+#   JVB_PORT: '{{ .Values.jvb.UDPPort }}'
+#   JVB_STUN_SERVERS: '{{.Values.jvb.stunServers }}'
+#   JVB_TCP_HARVESTER_DISABLED: '1'
+#   XMPP_SERVER: '{{ include "jitsi-meet.xmpp.server" . }}'
+#   {{- range $key, $value := .Values.jvb.extraEnvs }}
+#   {{- if not (kindIs "invalid" $value) }}
+#   {{ $key }}: {{ tpl $value $ | quote }}
+#   {{- end }}
+#   {{- end }}
+#   COLIBRI_REST_ENABLED: 'true'
+#   {{- if .Values.octo.enabled }}
+#   ENABLE_OCTO: "1"
+#   JVB_OCTO_BIND_PORT: "4096"
+#   JVB_OCTO_REGION: "all"
+#   {{- end }}
+
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "jitsi-meet.jvb.fullname" . }}
+  labels:
+    {{- include "jitsi-meet.jvb.labels" . | nindent 4 }}
+data:
+  JVB_BREWERY_MUC: '{{ .Values.jvb.breweryMuc }}'
+  JVB_PORT: '{{ .Values.jvb.UDPPort }}'
+  JVB_STUN_SERVERS: '{{.Values.jvb.stunServers }}'
+  JVB_TCP_HARVESTER_DISABLED: '1'
+  XMPP_SERVER: '{{ include "jitsi-meet.xmpp.server" . }}'
+  {{- range $key, $value := .Values.jvb.extraEnvs }}
+  {{- if not (kindIs "invalid" $value) }}
+  {{ $key }}: {{ tpl $value $ | quote }}
+  {{- end }}
+  {{- end }}
+  COLIBRI_REST_ENABLED: 'true'
+  {{- if .Values.octo.enabled }}
+  ENABLE_OCTO: "1"
+  JVB_OCTO_BIND_PORT: "4096"
+  JVB_OCTO_REGION: "all"
+  org.jitsi.videobridge.xmpp.user.shard.HOSTNAME: 'jitsi.dev.aks.linnovate.net'
+  org.jitsi.videobridge.xmpp.user.shard.DOMAIN: 'jitsi.dev.aks.linnovate.net'   
+  org.ice4j.ice.harvest.NAT_HARVESTER_LOCAL_ADDRESS: '10.0.56.138'                
+  org.ice4j.ice.harvest.NAT_HARVESTER_PUBLIC_ADDRESS: '51.105.253.103'             
+  {{- end }}

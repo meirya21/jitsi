@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-dev
+    certmanager.k8s.io/cluster-issuer: letsencrypt-dev
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: 100m
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  name: nginx-jitsi
+  namespace: jitsi
+spec:
+  rules:
+  - host: jitsi.dev.aks.linnovate.net
+    http:
+      paths:
+      - backend:
+          service:
+            name: jitsi-jitsi-meet-web
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - jitsi.dev.aks.linnovate.net
+    secretName: jitsi-secret
+status:
+  loadBalancer:
+    ingress:
+    - ip: 51.105.253.103

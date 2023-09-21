@@ -1,0 +1,11 @@
+apiVersion: v2
+appVersion: stable-8719
+dependencies:
+- condition: prosody.enabled
+  name: prosody
+  repository: ""
+  version: 1.3.7
+description: Jitsi Meet packaged for Kubernetes
+name: jitsi-meet
+type: application
+version: 1.3.7

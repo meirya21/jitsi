@@ -1,0 +1,6 @@
+apiVersion: v2
+appVersion: stable-8719
+description: Prosody XMPP server for Jitsi Meet on Kubernetes
+name: prosody
+type: application
+version: 1.3.7

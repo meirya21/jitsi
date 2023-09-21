@@ -1,0 +1,383 @@
+# Default values for jitsi-meet.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  # Set your cluster's DNS domain here.
+  # "cluster.local" should work for most environments.
+  # Set to "" to disable the use of FQDNs (default in older chart versions).
+  clusterDomain: cluster.local
+  podLabels: {}
+  podAnnotations: {}
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+enableAuth: false
+enableGuests: true
+publicURL: "https://jitsi.dev.aks.linnovate.net:8443"
+
+tz: Asia/Jerusalem
+
+image:
+  pullPolicy: IfNotPresent
+
+## WebSocket configuration:
+#
+#  Both Colibri and XMPP WebSockets are disabled by default,
+#  since some LoadBalancer / Reverse Proxy setups can't pass
+#  WebSocket connections properly, which might result in breakage
+#  for some clients.
+#
+#  Enable both Colibri and XMPP WebSockets to replicate the current
+#  upstream `meet.jit.si` setup. Keep both disabled to replicate
+#  older setups which might be more compatible in some cases.
+websockets:
+  ## Colibri (JVB signalling):
+  colibri:
+    enabled: false
+  ## XMPP (Prosody signalling):
+  xmpp:
+    enabled: false
+
+web:
+  replicaCount: 1
+  image:
+    repository: jitsi/web
+
+  extraEnvs: {}
+  service:
+    type: ClusterIP
+    port: 80
+    externalIPs: []
+
+  ingress:
+    enabled: false
+    # ingressClassName: "nginx-ingress-0"
+    annotations: {}
+      # kubernetes.io/tls-acme: "true"
+    hosts:
+    - host: jitsi.local
+      paths: ['/']
+    tls: []
+    #  - secretName: jitsi-web-certificate
+    #    hosts:
+    #      - jitsi.local
+
+  # Useful for ingresses that don't support http-to-https redirect by themself, (namely: GKE),
+  httpRedirect: false
+
+  # When tls-termination by the ingress is not wanted, enable this and set web.service.type=Loadbalancer
+  httpsEnabled: false
+
+  ## Resolver IP for nginx.
+  #
+  #  Starting with version `stable-8044`, the web container can
+  #  auto-detect the nameserver from /etc/resolv.conf.
+  #  Use this option if you want to override the nameserver IP.
+  #
+  # resolverIP: 10.43.0.10
+
+  livenessProbe:
+    httpGet:
+      path: /
+      port: 80
+  readinessProbe:
+    httpGet:
+      path: /
+      port: 80
+
+  podLabels: {}
+  podAnnotations: {}
+  podSecurityContext: {}
+    # fsGroup: 2000
+
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  resources: {}
+    # We usually recommend not to specify default resources and to leave this as a conscious
+    # choice for the user. This also increases chances charts run on environments with little
+    # resources, such as Minikube. If you do want to specify resources, uncomment the following
+    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+    # limits:
+    #   cpu: 100m
+    #   memory: 128Mi
+    # requests:
+    #   cpu: 100m
+    #   memory: 128Mi
+
+  nodeSelector: {}
+
+  tolerations: []
+
+  affinity: {}
+
+jicofo:
+  replicaCount: 1
+  image:
+    repository: jitsi/jicofo
+
+  xmpp:
+    password:
+    componentSecret:
+
+  livenessProbe:
+    tcpSocket:
+      port: 8888
+  readinessProbe:
+    tcpSocket:
+      port: 8888
+
+  podLabels: {}
+  podAnnotations: {}
+  podSecurityContext: {}
+  securityContext: {}
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnvs: {}
+
+jvb:
+  replicaCount: 1
+  image:
+    repository: jitsi/jvb
+
+  xmpp:
+    user: jvb
+    password:
+
+  ## Set public IP addresses to be advertised by JVB.
+  #  You can specify your nodes' IP addresses,
+  #  or IP addresses of proxies/LoadBalancers used for your
+  #  Jitsi Meet installation. Or both!
+  #
+  #  Note that only the first IP address will be used for legacy
+  #  `DOCKER_HOST_ADDRESS` environment variable.
+  #
+  # publicIPs:
+  #   - 1.2.3.4
+  #   - 5.6.7.8
+  ## Use a STUN server to help some users punch through some
+  #  especially nasty NAT setups. Usually makes sense for P2P calls.
+  stunServers: 'meet-jit-si-turnrelay.jitsi.net:443'
+  ## Try to use the hostPort feature:
+  #  (might not be supported by some clouds or CNI engines)
+  useHostPort: false
+  ## Use host's network namespace:
+  #  (not recommended, but might help for some cases)
+  useHostNetwork: false
+  ## UDP transport port:
+  UDPPort: 10000
+  ## Use a pre-defined external port for NodePort or LoadBalancer service,
+  #  if needed. Will allocate a random port from allowed range if unset.
+  #  (Default NodePort range for K8s is 30000-32767)
+  # nodePort: 10000
+  service:
+    enabled:
+    type: NodePort
+    externalTrafficPolicy: Cluster
+    externalIPs: []
+    ## Annotations to be added to the service (if LoadBalancer is used)
+    ##
+    annotations: {}
+
+  breweryMuc: jvbbrewery
+
+  livenessProbe:
+    httpGet:
+      path: /about/health
+      port: 8080
+  readinessProbe:
+    httpGet:
+      path: /about/health
+      port: 8080
+
+  podLabels: {}
+  podAnnotations: {}
+  podSecurityContext: {}
+  securityContext: {}
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnvs: {}
+
+  metrics:
+    enabled: false
+    prometheusAnnotations: false
+    image:
+      repository: docker.io/systemli/prometheus-jitsi-meet-exporter
+      tag: 1.2.1
+      pullPolicy: IfNotPresent
+    serviceMonitor:
+      enabled: true
+      selector:
+        release: prometheus-operator
+      interval: 10s
+      # honorLabels: false
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        cpu: 20m
+        memory: 32Mi
+
+octo:
+  enabled: false
+
+
+jibri:
+  ## Enabling Jibri will allow users to record
+  ## and/or stream their meetings (e.g. to YouTube).
+  enabled: false
+
+  ## Use external Jibri installation.
+  ## This setting skips the creation of Jibri Deployment altogether,
+  ## instead creating just the config secret
+  ## and enabling recording/streaming services.
+  ## Defaults to disabled (use bundled Jibri).
+  useExternalJibri: false
+
+  ## Enable single-use mode for Jibri.
+  ## With this setting enabled, every Jibri instance
+  ## will become "expired" after being used once (successfully or not)
+  ## and cleaned up (restarted) by Kubernetes.
+  ##
+  ## Note that detecting expired Jibri, restarting and registering it
+  ## takes some time, so you'll have to make sure you have enough
+  ## instances at your disposal.
+  ## You might also want to make LivenessProbe fail faster.
+  singleUseMode: false
+
+  ## Enable recording service.
+  ## Set this to true/false to enable/disable local recordings.
+  ## Defaults to enabled (allow local recordings).
+  recording: true
+
+  ## Enable livestreaming service.
+  ## Set this to true/false to enable/disable live streams.
+  ## Defaults to disabled (livestreaming is forbidden).
+  livestreaming: false
+
+  ## Enable multiple Jibri instances.
+  ## If enabled (i.e. set to 2 or more), each Jibri instance
+  ## will get an ID assigned to it, based on pod name.
+  ## Multiple replicas are recommended for single-use mode.
+  replicaCount: 1
+
+  ## Enable persistent storage for local recordings.
+  ## If disabled, jibri pod will use a transient
+  ## emptyDir-backed storage instead.
+  persistence:
+    enabled: false
+    size: 4Gi
+    ## Set this to existing PVC name if you have one.
+    existingClaim:
+    storageClassName:
+
+  shm:
+    ## Set to true to enable "/dev/shm" mount.
+    ## May be required by built-in Chromium.
+    enabled: false
+    ## If "true", will use host's shared memory dir,
+    ## and if "false" — an emptyDir mount.
+    # useHost: false
+    # size: 256Mi
+
+  ## Configure the update strategy for Jibri deployment.
+  ## This may be useful depending on your persistence settings,
+  ## e.g. when you use ReadWriteOnce PVCs.
+  ## Default strategy is "RollingUpdate", which keeps
+  ## the old instances up until the new ones are ready.
+  # strategy:
+  #   type: RollingUpdate
+
+  image:
+    repository: jitsi/jibri
+
+  podLabels: {}
+  podAnnotations: {}
+
+  breweryMuc: jibribrewery
+  timeout: 90
+
+  ## jibri XMPP user credentials:
+  xmpp:
+    user: jibri
+    password:
+
+  ## recorder XMPP user credentials:
+  recorder:
+    user: recorder
+    password:
+
+  livenessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 2
+    exec:
+      command:
+        - /bin/bash
+        - "-c"
+        - >-
+          curl -sq localhost:2222/jibri/api/v1.0/health
+          | jq '"\(.status.health.healthStatus) \(.status.busyStatus)"'
+          | grep -qP 'HEALTHY (IDLE|BUSY)'
+
+  readinessProbe:
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 2
+    exec:
+      command:
+        - /bin/bash
+        - "-c"
+        - >-
+          curl -sq localhost:2222/jibri/api/v1.0/health
+          | jq '"\(.status.health.healthStatus) \(.status.busyStatus)"'
+          | grep -qP 'HEALTHY (IDLE|BUSY)'
+
+  extraEnvs: {}
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+
+xmpp:
+  domain: meet.jitsi
+  authDomain:
+  mucDomain:
+  internalMucDomain:
+  guestDomain:
+
+extraCommonEnvs: {}
+
+prosody:
+  enabled: true
+  server:
+  extraEnvFrom:
+  - secretRef:
+      name: '{{ include "prosody.fullname" . }}-jicofo'
+  - secretRef:
+      name: '{{ include "prosody.fullname" . }}-jvb'
+  - configMapRef:
+      name: '{{ include "prosody.fullname" . }}-common'
+  ## Uncomment this if you want to use jibri:
+  # - secretRef:
+  #     name: '{{ include "prosody.fullname" . }}-jibri'
+  image:
+    repository: jitsi/prosody
+    tag: 'stable-8719'
